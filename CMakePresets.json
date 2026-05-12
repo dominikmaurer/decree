@@ -1,0 +1,30 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "clang-ninja",
+            "displayName": "Clang Ninja",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER":        "C:/Program Files/LLVM/bin/clang++.exe",
+                "CMAKE_CXX_COMPILER_TARGET": "x86_64-w64-mingw32",
+                "CMAKE_RC_COMPILER":             "C:/Program Files/LLVM/bin/llvm-rc.exe",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name":             "clang-ninja",
+            "configurePreset": "clang-ninja"
+        }
+    ],
+    "testPresets": [
+        {
+            "name":             "clang-ninja",
+            "configurePreset": "clang-ninja",
+            "output": { "outputOnFailure": true }
+        }
+    ]
+}

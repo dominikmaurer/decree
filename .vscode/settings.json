@@ -1,0 +1,9 @@
+{
+    "cmake.configureOnOpen": true,
+    "cmake.preferredGenerators": ["Ninja"],
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "C_Cpp.default.cppStandard": "c++23",
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/build"
+    ]
+}

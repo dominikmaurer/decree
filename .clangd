@@ -1,0 +1,8 @@
+CompileFlags:
+  Add:
+    - -std=c++23
+    - --target=x86_64-w64-mingw32
+  Remove:
+    - --precompile
+    - -fmodule-file*
+    - "@*.modmap"
