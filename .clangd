@@ -4,5 +4,8 @@ CompileFlags:
     - --target=x86_64-w64-mingw32
   Remove:
     - --precompile
+    - -fmodules-ts
     - -fmodule-file*
+    - -fmodule-mapper*
+    - -fdeps-format*
     - "@*.modmap"

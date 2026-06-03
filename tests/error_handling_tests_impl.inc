@@ -1,18 +1,10 @@
-import errors;
-import errorConcept;
-
-#include <gtest/gtest.h>
-#include <string>
-#include <expected>
-
-enum class EFileError  { 
-    NotFound, 
-    PermissionDenied 
+enum class EFileError {
+    NotFound,
+    PermissionDenied
 };
 
-enum class EParseError { 
-    InvalidFormat, 
-    UnexpectedEof 
+enum class EParseError {
+    InvalidFormat
 };
 
 TEST(ErrorTypeTest, MakeErrorSetsCode) {
@@ -36,7 +28,7 @@ TEST(ErrorTypeTest, IsCopyConstructible) {
 }
 
 TEST(ErrorTypeTest, IsMoveConstructible) {
-    auto err  = Errors::ErrorType<EFileError>::makeError(EFileError::NotFound, "msg");
+    auto err   = Errors::ErrorType<EFileError>::makeError(EFileError::NotFound, "msg");
     auto moved = std::move(err);
 
     EXPECT_EQ(moved.errorCode, EFileError::NotFound);
@@ -44,11 +36,19 @@ TEST(ErrorTypeTest, IsMoveConstructible) {
 }
 
 static Errors::ErrorResult<int, EParseError> parsePositive(int value) {
-    if (value <= 0) {
-        return std::unexpected(Errors::ErrorType<EParseError>::makeError(EParseError::InvalidFormat, "must be positive"));
+    if(value <= 0) {
+        return Errors::makeError(EParseError::InvalidFormat, "must be positive");
     }
-        
+
     return value;
+}
+
+static Errors::ErrorResult<void, EFileError> openFile(bool exists) {
+    if(!exists) {
+        return Errors::makeError(EFileError::NotFound, "file not found");
+    }
+
+    return {};
 }
 
 TEST(ErrorResultTest, SuccessPathHasValue) {
@@ -68,12 +68,26 @@ TEST(ErrorResultTest, FailurePathHasError) {
     EXPECT_EQ(result.error().errorMessage, "must be positive");
 }
 
+TEST(ErrorResultTest, VoidSuccessPathHasValue) {
+    auto result = openFile(true);
+
+    ASSERT_TRUE(result.has_value());
+}
+
+TEST(ErrorResultTest, VoidFailurePathHasError) {
+    auto result = openFile(false);
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error().errorCode, EFileError::NotFound);
+    EXPECT_EQ(result.error().errorMessage, "file not found");
+}
+
 TEST(ErrorResultTest, AndThenChainsPropagatesValue) {
     static constexpr auto s_input = 10;
     static constexpr auto s_multiplier = 2;
     static constexpr auto s_expected = (s_input * s_multiplier);
-    auto result = parsePositive(s_input).and_then([](int v) -> Errors::ErrorResult<int, EParseError> { 
-        return v * s_multiplier; 
+    auto result = parsePositive(s_input).and_then([](int v) -> Errors::ErrorResult<int, EParseError> {
+        return v * s_multiplier;
     });
 
     ASSERT_TRUE(result.has_value());
@@ -105,6 +119,16 @@ TEST(ErrorResultTest, OrElsePropagatesRecoveredValue) {
     EXPECT_EQ(*result, s_recoveryValue);
 }
 
+TEST(ErrorResultTest, OrElseForwardsError) {
+    static constexpr auto s_invalidInput = -1;
+    auto result = parsePositive(s_invalidInput).or_else([](const Errors::ErrorType<EParseError>& err) -> Errors::ErrorResult<int, EParseError> {
+        return std::unexpected(err);
+    });
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error().errorCode, EParseError::InvalidFormat);
+}
+
 TEST(CErrorConceptTest, ErrorTypeSatisfiesCError) {
     static_assert(CError<Errors::ErrorType<EFileError>>);
     static_assert(CError<Errors::ErrorType<EParseError>>);
@@ -123,10 +147,9 @@ TEST(CErrorConceptTest, IntDoesNotSatisfyCError) {
 }
 
 struct CustomError {
-    enum class EErrorCode { 
-        Ok,
-        Overflow, 
-        Underflow 
+    enum class EErrorCode {
+        Overflow,
+        Underflow
     };
 
     std::string errorMessage;

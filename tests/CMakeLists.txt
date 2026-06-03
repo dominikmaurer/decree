@@ -5,21 +5,38 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_TAG        v1.14.0
 )
+
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 find_package(Threads REQUIRED)
 
-add_executable(condair_error_handling_test
-    condair_error_handling_test.cpp
+include(GoogleTest)
+
+add_executable(decree_header_test
+    error_handling_header_test.cpp
 )
 
-target_link_libraries(condair_error_handling_test
-    PRIVATE
-        condair::error_handling_library
+target_link_libraries(decree_header_test PRIVATE
+    decree::decree
+    GTest::gtest_main
+    Threads::Threads
+)
+
+set_target_properties(decree_header_test PROPERTIES CXX_EXTENSIONS OFF)
+gtest_discover_tests(decree_header_test)
+
+if(DECREE_USE_MODULES)
+    add_executable(decree_module_test
+        error_handling_module_test.cpp
+    )
+
+    target_link_libraries(decree_module_test PRIVATE
+        decree::decree
         GTest::gtest_main
         Threads::Threads
-)
+    )
 
-include(GoogleTest)
-gtest_discover_tests(condair_error_handling_test)
+    set_target_properties(decree_module_test PROPERTIES CXX_EXTENSIONS OFF)
+    gtest_discover_tests(decree_module_test)
+endif()
