@@ -31,7 +31,7 @@ void example() {
 | Class / struct              | `PascalCase`          | `TimeHelpers`         |
 | Namespace                   | `PascalCase`          | `FileHelpers`         |
 | Enum type                   | `E` + `PascalCase`    | `EError`              |
-| Enum value                  | `e` + `camelCase`     | `eNoError`            |
+| Enum value                  | `e` + `PascalCase`    | `eNoError`            |
 | Member variable             | `m_` + `camelCase`    | `m_pinNumber`         |
 | Pointer member variable     | `m_p` + `camelCase`   | `m_pImpl`             |
 | Static / constexpr constant | `s_` + `camelCase`    | `s_byteMask`          |
@@ -126,9 +126,11 @@ if(condition1) {
 while(condition) {
     ...
 }
+
 for(int i = 0; i < n; ++i) {
     ...
 }
+
 switch(value) {
     ...
 }
@@ -137,16 +139,19 @@ switch(value) {
 Wrap complex subexpressions in comparisons with parentheses for clarity:
 
 ```cpp
-if((std::chrono::steady_clock::now() - start) >= timeout) { ... }
+if((std::chrono::steady_clock::now() - start) >= timeout) { 
+    ... 
+}
 ```
 
 Always leave an empty line before a `return` statement in non-trivial functions:
 
 ```cpp
-void compute() {
-    const auto result = doWork();
+int compute() {
+    const auto returnValue = 12;
+    doWork();
 
-    return result;
+    return returnValue;
 }
 ```
 
