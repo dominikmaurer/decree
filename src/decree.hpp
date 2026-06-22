@@ -1,5 +1,5 @@
-#ifndef ERROR_HANDLING_HPP_
-#define ERROR_HANDLING_HPP_
+#ifndef DECREE_HPP_
+#define DECREE_HPP_
 
 #include <type_traits>
 #include <string>
@@ -11,4 +11,4 @@ namespace Decree {
     #include "decree_impl.inc"
 }
 
-#endif /* ERROR_HANDLING_HPP_ */
+#endif /* DECREE_HPP_ */

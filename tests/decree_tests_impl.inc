@@ -24,7 +24,7 @@ TEST(ErrorTypeTest, MakeErrorCapturesSourceLocation) {
     auto err = Decree::ErrorType<EFileError>::makeError(EFileError::eNotFound, "not found");
 
     EXPECT_EQ(err.getSourceLocation().line(), expectedLine);
-    EXPECT_NE(std::string_view(err.getSourceLocation().file_name()).find("error_handling_tests_impl"), std::string_view::npos);
+    EXPECT_NE(std::string_view(err.getSourceLocation().file_name()).find("decree_tests_impl"), std::string_view::npos);
 }
 
 TEST(ErrorTypeTest, FreeFunctionMakeErrorCapturesSourceLocation) {

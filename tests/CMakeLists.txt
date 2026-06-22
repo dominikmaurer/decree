@@ -14,7 +14,7 @@ find_package(Threads REQUIRED)
 include(GoogleTest)
 
 add_executable(decree_header_test
-    error_handling_header_test.cpp
+    decree_header_test.cpp
 )
 
 target_link_libraries(decree_header_test PRIVATE
@@ -28,7 +28,7 @@ gtest_discover_tests(decree_header_test)
 
 if(DECREE_USE_MODULES)
     add_executable(decree_module_test
-        error_handling_module_test.cpp
+        decree_module_test.cpp
     )
 
     target_link_libraries(decree_module_test PRIVATE

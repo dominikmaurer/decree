@@ -35,7 +35,7 @@ if(DECREE_USE_MODULES)
         PUBLIC
             FILE_SET CXX_MODULES
             FILES
-                src/error_handling_module.cppm
+                src/decree.cppm
     )
 endif()
 
@@ -69,7 +69,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
     if(NOT DECREE_USE_MODULES)
         install(FILES
-            src/error_handling.hpp
+            src/decree.hpp
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/decree
         )
     endif()
