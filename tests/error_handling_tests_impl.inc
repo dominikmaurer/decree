@@ -31,7 +31,7 @@ TEST(ErrorTypeTest, FreeFunctionMakeErrorCapturesSourceLocation) {
     const auto expectedLine = static_cast<uint_least32_t>(__LINE__ + 1);
     auto result = Decree::makeError(EFileError::eNotFound, "not found");
 
-    EXPECT_EQ(result.value().getSourceLocation().line(), expectedLine);
+    EXPECT_EQ(result.error().getSourceLocation().line(), expectedLine);
 }
 
 TEST(ErrorTypeTest, IsCopyConstructible) {
