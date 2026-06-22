@@ -1,6 +1,6 @@
 # decree
 
-A lightweight C++23 error-handling library built on `std::expected`. It provides a generic error struct, a result-type alias, and a concept that constrains custom error types to the same interface.
+A lightweight C++23 error-handling wrapper built on `std::expected`. It provides a generic error struct and a result-type alias that forces callers to handle both the success and the failure path.
 
 ---
 
@@ -11,28 +11,25 @@ A lightweight C++23 error-handling library built on `std::expected`. It provides
 3. [Modules](#modules)
 4. [ErrorType](#errortype)
 5. [ErrorResult](#errorresult)
-6. [CError concept](#cerror-concept)
-7. [Writing a custom error type](#writing-a-custom-error-type)
-8. [Examples](#examples)
-9. [How to build](#how-to-build)
-10. [Running the tests](#running-the-tests)
+6. [Examples](#examples)
+7. [How to build](#how-to-build)
+8. [Running the tests](#running-the-tests)
 
 ---
 
 ## Overview
 
-The library solves two problems:
+The wrapper solves two problems:
 
 - **Uniform error representation** — every error carries a typed code (an enum) and a human-readable message. No raw integers, no stringly-typed errors.
 - **Explicit failure paths** — functions return `ErrorResult<T, ECode>` instead of throwing. Callers are forced by the type system to handle both outcomes.
 
-The three building blocks are independent and composable:
+The two building blocks are independent and composable:
 
 | Building block | Role |
 |---|---|
-| `Errors::ErrorType<ECode>` | The error value itself |
-| `Errors::ErrorResult<T, ECode>` | Return type alias (`std::expected`) |
-| `CError` concept | Compile-time constraint for generic code |
+| `Decree::ErrorType<ECode>` | The error value itself |
+| `Decree::ErrorResult<T, ECode>` | Return type alias (`std::expected`) |
 
 ---
 
@@ -42,11 +39,9 @@ The three building blocks are independent and composable:
 
 ```mermaid
 graph TD
-    A[errorConcept<br/>module] -->|exports| B(CError concept)
-    C[errors<br/>module] -->|exports| D(Errors::ErrorType)
-    C -->|exports| E(Errors::ErrorResult)
+    C[decree<br/>module] -->|exports| D(Decree::ErrorType)
+    C -->|exports| E(Decree::ErrorResult)
     E -->|alias of| F(std::expected)
-    D -->|satisfies| B
 ```
 
 ### Error-propagation flow
@@ -56,8 +51,9 @@ flowchart LR
     F[function] -->|returns| R{ErrorResult}
     R -->|has_value| V[T — success value]
     R -->|not has_value| E[ErrorType — error value]
-    E --> C[errorCode]
-    E --> M[errorMessage]
+    E --> C[getErrorCode()]
+    E --> M[getErrorMessage()]
+    E --> L[getSourceLocation()]
 ```
 
 ### Type relationships
@@ -65,9 +61,13 @@ flowchart LR
 ```mermaid
 classDiagram
     class ErrorType~EErrorCode~ {
-        +EErrorCode errorCode
-        +string errorMessage
-        +makeError(EErrorCode, string) ErrorType$
+        -EErrorCode m_errorCode
+        -string m_errorMessage
+        -source_location m_sourceLocation
+        +getErrorCode() EErrorCode
+        +getErrorMessage() string_view
+        +getSourceLocation() source_location
+        +makeError(EErrorCode, string_view, source_location) ErrorType$
     }
 
     class ErrorResult~T, EErrorCode~ {
@@ -75,34 +75,22 @@ classDiagram
         std::expected~T, ErrorType~EErrorCode~~
     }
 
-    class CError {
-        <<concept>>
-        +errorMessage convertible_to string
-        +EErrorCode is_enum
-        +errorCode same_as EErrorCode
-        +makeError(EErrorCode, string) ErrorType$
-        +movable
-        +copyable
-    }
-
     ErrorResult --> ErrorType : error channel
-    ErrorType ..|> CError : satisfies
 ```
 
 ---
 
 ## Modules
 
-| Module          | Exported name                                                    | File                              |
-|-----------------|------------------------------------------------------------------|-----------------------------------|
-| `errors`        | `Errors::ErrorType`, `Errors::ErrorResult`, `Errors::makeError`  | `src/error_handling_module.cppm`  |
-| `errorConcept`  | `CError`                                                         | `src/error_concept_module.cppm`   |
+| Module    | Exported name                                                    | File                             |
+|-----------|------------------------------------------------------------------|----------------------------------|
+| `decree`  | `Decree::ErrorType`, `Decree::ErrorResult`, `Decree::makeError`  | `src/error_handling_module.cppm` |
 
 ---
 
 ## ErrorType
 
-**`Errors::ErrorType<EErrorCode>` — Module:** `errors`
+**`Decree::ErrorType<EErrorCode>` — Module:** `decree`
 
 A generic, value-semantic error struct parameterised by a user-defined error-code enum.
 
@@ -112,39 +100,41 @@ A generic, value-semantic error struct parameterised by a user-defined error-cod
 |---|---|---|
 | `TErrorCode` | `std::is_enum_v` | An enum (or enum class) whose enumerators identify error categories. |
 
-### Members
+### Getters
 
-| Member | Type | Description |
+| Getter | Return type | Description |
 |---|---|---|
-| `errorCode` | `EErrorCode` | Identifies the category of the error. |
-| `errorMessage` | `std::string` | Human-readable description of what went wrong. |
+| `getErrorCode()` | `EErrorCode` | Identifies the category of the error. |
+| `getErrorMessage()` | `std::string_view` | Human-readable description of what went wrong. |
+| `getSourceLocation()` | `std::source_location` | File, line, and function where `makeError` was called. Captured automatically — no extra argument needed. |
 
 ### Static factory
 
 ```cpp
-[[nodiscard]] static ErrorType makeError(EErrorCode code, std::string msg);
+[[nodiscard]] static ErrorType makeError(EErrorCode code, std::string_view msg,
+    std::source_location location = std::source_location::current());
 ```
 
-Constructs an `ErrorType` from a code and a message. Prefer this over aggregate initialisation so call sites remain readable if the struct gains new fields.
+Constructs an `ErrorType` from a code and a message. The `location` parameter is filled in automatically by the compiler — callers never pass it explicitly. Prefer this over aggregate initialisation so call sites remain readable if the struct gains new fields.
 
 ### Example
 
 ```cpp
-import errors;
+import decree;
 
-enum class EFileError { NotFound, PermissionDenied };
+enum class EFileError { 
+    eNotFound, 
+    ePermissionDenied 
+};
 
-auto err = Errors::ErrorType<EFileError>::makeError(
-    EFileError::NotFound,
-    "config.json was not found"
-);
+auto err = Decree::ErrorType<EFileError>::makeError(EFileError::eNotFound,"config.json was not found");
 ```
 
 ---
 
 ## ErrorResult
 
-**`Errors::ErrorResult<T, EErrorCode>` — Module:** `errors`
+**`Decree::ErrorResult<T, EErrorCode>` — Module:** `decree`
 
 A type alias for `std::expected<T, ErrorType<EErrorCode>>`. Use it as the return type of any function that can fail.
 
@@ -156,13 +146,16 @@ using ErrorResult = std::expected<T, ErrorType<EErrorCode>>;
 ### Returning a result
 
 ```cpp
-import errors;
+import decree;
 
-enum class EParseError { InvalidFormat, UnexpectedEof };
+enum class EParseError { 
+    eInvalidFormat, 
+    eUnexpectedEof 
+};
 
-Errors::ErrorResult<int, EParseError> parseNumber(std::string_view input) {
+Decree::ErrorResult<int, EParseError> parseNumber(std::string_view input) {
     if(input.empty()) {
-        return Errors::makeError(EParseError::UnexpectedEof, "input was empty");
+        return Decree::makeError(EParseError::eUnexpectedEof, "input was empty");
     }
     // ...
     return 42;
@@ -174,10 +167,11 @@ Errors::ErrorResult<int, EParseError> parseNumber(std::string_view input) {
 ```cpp
 auto result = parseNumber("42");
 
-if (result)
+if (result) {
     use(*result);                        // success path
-else
-    log(result.error().errorMessage);    // failure path
+} else {
+    log(result.error().getErrorMessage());    // failure path
+}
 ```
 
 ### Chaining with `and_then` / `or_else`
@@ -185,83 +179,22 @@ else
 ```cpp
 auto final = parseNumber(raw)
     .and_then(validate)
-    .or_else([](auto& err) -> Errors::ErrorResult<int, EParseError> {
-        log(err.errorMessage);
+    .or_else([](auto& err) -> Decree::ErrorResult<int, EParseError> {
+        log(err.getErrorMessage());
         return std::unexpected(err);
     });
 ```
 
 ---
 
-## `CError` concept
-
-**Module:** `errorConcept`
-
-Constrains a type so it is interchangeable with `ErrorType`. Useful when writing generic utilities (loggers, error reporters) that must work with any conforming error type.
-
-```cpp
-template<typename ErrorType>
-concept CError = /* ... */;
-```
-
-### Requirements
-
-| Requirement | Description |
-|---|---|
-| `e.errorMessage` convertible to `std::string` | Exposes a human-readable message. |
-| `decltype(e.errorCode)` is an enum | The error code field must be an enum or enum class. |
-| `E::makeError(e.errorCode, e.errorMessage)` returns `E` | Constructible via the standard factory. |
-| `std::movable<E>` and `std::copyable<E>` | Has value semantics. |
-
-`Errors::ErrorType<EErrorCode>` satisfies `CError` for any valid enum `EErrorCode`.
-
-### Example
-
-```cpp
-import errorConcept;
-import errors;
-
-template<CError E>
-void logError(const E& err) {
-    std::println("[{}] {}", static_cast<int>(err.errorCode),
-                            std::string(err.errorMessage));
-}
-
-enum class ENetError { Timeout, Refused };
-logError(Errors::ErrorType<ENetError>::makeError(ENetError::Timeout, "connection timed out"));
-```
-
----
-
-## Writing a custom error type
-
-Any struct satisfying the six `CError` requirements works wherever the concept is used:
-
-```cpp
-struct MyError {
-    enum class EErrorCode { Ok, Overflow, Underflow };
-
-    std::string errorMessage;
-    EErrorCode  errorCode;
-
-    static MyError makeError(EErrorCode code, std::string msg) {
-        return { std::move(msg), code };
-    }
-};
-
-static_assert(CError<MyError>);
-```
-
----
-
 ## Examples
 
-The following example is adapted from a real consumer of the library. It shows the patterns you will use in practice: defining the error enum inside the class, using a `ReturnType` alias to avoid repeating the enum, propagating errors from nested calls, and returning a void result.
+The following example is adapted from a real consumer of this wrapper. It shows the patterns you will use in practice: defining the error enum inside the class, using a `ReturnType` alias to avoid repeating the enum, propagating errors from nested calls, and returning a void result.
 
 ### Defining a class that returns `ErrorResult`
 
 ```cpp
-import errors;
+import decree;
 
 #include <filesystem>
 #include <fstream>
@@ -277,7 +210,7 @@ public:
 
     // Alias keeps return-type declarations short
     template<typename T>
-    using ReturnType = Errors::ErrorResult<T, EError>;
+    using ReturnType = Decree::ErrorResult<T, EError>;
 
     struct Configuration {
         std::string projectName;
@@ -300,12 +233,12 @@ private:
 auto ConfigurationHandler::load(const std::filesystem::path& path) -> ReturnType<Configuration> {
     std::ifstream file{ path };
     if (!file.is_open()) {
-        return Errors::makeError(EError::eFileNotFound, "failed to open configuration: " + path.string());
+        return Decree::makeError(EError::eFileNotFound, "failed to open configuration: " + path.string());
     }
 
     auto parsed = parse(file);
     if (!parsed.has_value()) {
-        return Errors::makeError(EError::eParseFailed, parsed.error().errorMessage);
+        return Decree::makeError(EError::eParseFailed, parsed.error().getErrorMessage());
     }
 
     return *parsed;
@@ -320,7 +253,7 @@ auto ConfigurationHandler::save(const std::filesystem::path& path, const Configu
 
     std::ofstream file{path};
     if (!file.is_open()) {
-        return Errors::makeError(EError::eWriteFailed, "failed to open for writing: " + path.string());
+        return Decree::makeError(EError::eWriteFailed, "failed to open for writing: " + path.string());
     }
 
     file << config.projectName << "\n" << config.outputPath;
@@ -338,7 +271,7 @@ ConfigurationHandler handler;
 
 auto config = handler.load("project.json");
 if (!config.has_value()) {
-    std::cerr << config.error().errorMessage << "\n";
+    std::cerr << config.error().getErrorMessage() << "\n";
     
     return -1;
 }
@@ -354,7 +287,7 @@ handler.load("project.json")
         return handler.save("project.backup.json", cfg);
     })
     .or_else([](const auto& err) -> ConfigurationHandler::ReturnType<void> {
-        std::cerr << "backup failed: " << err.errorMessage << "\n";
+        std::cerr << "backup failed: " << err.getErrorMessage() << "\n";
         
         return std::unexpected(err);
     });
@@ -426,7 +359,7 @@ cmake --build build
 
 ### Output
 
-The library is built as a static library target `decree`. Consume it in another CMake project with:
+The wrapper is built as a static library target `decree`. Consume it in another CMake project with:
 
 ```cmake
 find_package(decree REQUIRED)
@@ -455,7 +388,5 @@ ctest --test-dir build --output-on-failure
 
 | Test suite | What it verifies |
 | --- | --- |
-| `ErrorTypeTest` | `makeError` constructs fields correctly; `EErrorCode` constraint is enforced |
-| `ErrorResultTest` | Success and failure paths of `ErrorResult`; monadic chaining |
-| `CErrorConceptTest` | `ErrorType` satisfies `CError`; non-conforming types are rejected |
-| `CustomErrorTypeTest` | A hand-written struct satisfies `CError` |
+| `ErrorTypeTest` | `makeError` constructs all fields correctly, including `sourceLocation` capture; copy and move semantics |
+| `ErrorResultTest` | Success and failure paths; monadic chaining; `sourceLocation` preserved on propagation |

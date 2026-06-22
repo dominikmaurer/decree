@@ -1,24 +1,29 @@
 # decree
 
-A lightweight C++23 error-handling library built on `std::expected`. Functions return a typed result instead of throwing — the type system forces callers to handle both the success and the failure path.
+A lightweight C++23 error-handling wrapper built on `std::expected`. Functions return a typed result instead of throwing — the type system forces callers to handle both the success and the failure path.
 
 ```cpp
-import errors;
+import decree;
 
-enum class EFileError { NotFound, PermissionDenied };
+enum class EFileError { 
+    eNotFound, 
+    ePermissionDenied 
+};
 
-Errors::ErrorResult<std::string, EFileError> readFile(const std::filesystem::path& path) {
-    if (!std::filesystem::exists(path))
-        return Errors::makeError(EFileError::NotFound, path.string() + " does not exist");
+Decree::ErrorResult<std::string, EFileError> readFile(const std::filesystem::path& path) {
+    if (!std::filesystem::exists(path)) {
+        return Decree::makeError(EFileError::eNotFound, path.string() + " does not exist");
+    }
 
     return readContent(path);
 }
 
 auto result = readFile("config.json");
-if (result)
+if (result) {
     process(*result);
-else
-    std::cerr << result.error().errorMessage << "\n";
+} else {
+    std::cerr << result.error().getErrorMessage() << "\n";
+}
 ```
 
 ## Build

@@ -2,10 +2,12 @@ module;
 
 #include <type_traits>
 #include <string>
+#include <string_view>
 #include <expected>
+#include <source_location>
 
-export module errors;
+export module decree;
 
-export namespace Errors {
+export namespace Decree {
     #include "decree_impl.inc"
 }

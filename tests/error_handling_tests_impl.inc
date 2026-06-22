@@ -1,54 +1,80 @@
 enum class EFileError {
-    NotFound,
-    PermissionDenied
+    eNotFound,
+    ePermissionDenied
 };
 
 enum class EParseError {
-    InvalidFormat
+    eInvalidFormat
 };
 
 TEST(ErrorTypeTest, MakeErrorSetsCode) {
-    auto err = Errors::ErrorType<EFileError>::makeError(EFileError::NotFound, "not found");
+    auto err = Decree::ErrorType<EFileError>::makeError(EFileError::eNotFound, "not found");
 
-    EXPECT_EQ(err.errorCode, EFileError::NotFound);
+    EXPECT_EQ(err.getErrorCode(), EFileError::eNotFound);
 }
 
 TEST(ErrorTypeTest, MakeErrorSetsMessage) {
-    auto err = Errors::ErrorType<EFileError>::makeError(EFileError::PermissionDenied, "access denied");
+    auto err = Decree::ErrorType<EFileError>::makeError(EFileError::ePermissionDenied, "access denied");
 
-    EXPECT_EQ(err.errorMessage, "access denied");
+    EXPECT_EQ(err.getErrorMessage(), "access denied");
+}
+
+TEST(ErrorTypeTest, MakeErrorCapturesSourceLocation) {
+    const auto expectedLine = static_cast<uint_least32_t>(__LINE__ + 1);
+    auto err = Decree::ErrorType<EFileError>::makeError(EFileError::eNotFound, "not found");
+
+    EXPECT_EQ(err.getSourceLocation().line(), expectedLine);
+    EXPECT_NE(std::string_view(err.getSourceLocation().file_name()).find("error_handling_tests_impl"), std::string_view::npos);
+}
+
+TEST(ErrorTypeTest, FreeFunctionMakeErrorCapturesSourceLocation) {
+    const auto expectedLine = static_cast<uint_least32_t>(__LINE__ + 1);
+    auto result = Decree::makeError(EFileError::eNotFound, "not found");
+
+    EXPECT_EQ(result.value().getSourceLocation().line(), expectedLine);
 }
 
 TEST(ErrorTypeTest, IsCopyConstructible) {
-    auto original = Errors::ErrorType<EFileError>::makeError(EFileError::NotFound, "msg");
+    auto original = Decree::ErrorType<EFileError>::makeError(EFileError::eNotFound, "msg");
     auto copy = original;
 
-    EXPECT_EQ(copy.errorCode, original.errorCode);
-    EXPECT_EQ(copy.errorMessage, original.errorMessage);
+    EXPECT_EQ(copy.getErrorCode(), original.getErrorCode());
+    EXPECT_EQ(copy.getErrorMessage(), original.getErrorMessage());
+    EXPECT_EQ(copy.getSourceLocation().line(), original.getSourceLocation().line());
 }
 
 TEST(ErrorTypeTest, IsMoveConstructible) {
-    auto err   = Errors::ErrorType<EFileError>::makeError(EFileError::NotFound, "msg");
+    auto err = Decree::ErrorType<EFileError>::makeError(EFileError::eNotFound, "msg");
+    const auto expectedLine = err.getSourceLocation().line();
     auto moved = std::move(err);
 
-    EXPECT_EQ(moved.errorCode, EFileError::NotFound);
-    EXPECT_EQ(moved.errorMessage, "msg");
+    EXPECT_EQ(moved.getErrorCode(), EFileError::eNotFound);
+    EXPECT_EQ(moved.getErrorMessage(), "msg");
+    EXPECT_EQ(moved.getSourceLocation().line(), expectedLine);
 }
 
-static Errors::ErrorResult<int, EParseError> parsePositive(int value) {
+static Decree::ErrorResult<int, EParseError> parsePositive(int value) {
     if(value <= 0) {
-        return Errors::makeError(EParseError::InvalidFormat, "must be positive");
+        return Decree::makeError(EParseError::eInvalidFormat, "must be positive");
     }
 
     return value;
 }
 
-static Errors::ErrorResult<void, EFileError> openFile(bool exists) {
+static Decree::ErrorResult<void, EFileError> openFile(bool exists) {
     if(!exists) {
-        return Errors::makeError(EFileError::NotFound, "file not found");
+        return Decree::makeError(EFileError::eNotFound, "file not found");
     }
 
     return {};
+}
+
+static Decree::ErrorResult<std::string, EFileError> loadContent(bool fileExists) {
+    auto result = openFile(fileExists);
+    if (!result.has_value()) {
+        return std::unexpected(result.error());
+    }
+    return "content";
 }
 
 TEST(ErrorResultTest, SuccessPathHasValue) {
@@ -64,8 +90,8 @@ TEST(ErrorResultTest, FailurePathHasError) {
     auto result = parsePositive(s_invalidInput);
 
     ASSERT_FALSE(result.has_value());
-    EXPECT_EQ(result.error().errorCode, EParseError::InvalidFormat);
-    EXPECT_EQ(result.error().errorMessage, "must be positive");
+    EXPECT_EQ(result.error().getErrorCode(), EParseError::eInvalidFormat);
+    EXPECT_EQ(result.error().getErrorMessage(), "must be positive");
 }
 
 TEST(ErrorResultTest, VoidSuccessPathHasValue) {
@@ -78,15 +104,24 @@ TEST(ErrorResultTest, VoidFailurePathHasError) {
     auto result = openFile(false);
 
     ASSERT_FALSE(result.has_value());
-    EXPECT_EQ(result.error().errorCode, EFileError::NotFound);
-    EXPECT_EQ(result.error().errorMessage, "file not found");
+    EXPECT_EQ(result.error().getErrorCode(), EFileError::eNotFound);
+    EXPECT_EQ(result.error().getErrorMessage(), "file not found");
+}
+
+TEST(ErrorResultTest, SourceLocationPreservedOnPropagation) {
+    const auto original   = openFile(false);
+    const auto propagated = loadContent(false);
+
+    ASSERT_FALSE(propagated.has_value());
+    EXPECT_EQ(propagated.error().getSourceLocation().line(), original.error().getSourceLocation().line());
+    EXPECT_STREQ(propagated.error().getSourceLocation().file_name(), original.error().getSourceLocation().file_name());
 }
 
 TEST(ErrorResultTest, AndThenChainsPropagatesValue) {
     static constexpr auto s_input = 10;
     static constexpr auto s_multiplier = 2;
     static constexpr auto s_expected = (s_input * s_multiplier);
-    auto result = parsePositive(s_input).and_then([](int v) -> Errors::ErrorResult<int, EParseError> {
+    auto result = parsePositive(s_input).and_then([](int v) -> Decree::ErrorResult<int, EParseError> {
         return v * s_multiplier;
     });
 
@@ -98,7 +133,7 @@ TEST(ErrorResultTest, AndThenShortCircuitsOnError) {
     static constexpr auto s_invalidInput = -1;
     static constexpr auto s_fallbackValue = 0;
     bool chainCalled = false;
-    auto result = parsePositive(s_invalidInput).and_then([&](int) -> Errors::ErrorResult<int, EParseError> {
+    auto result = parsePositive(s_invalidInput).and_then([&](int) -> Decree::ErrorResult<int, EParseError> {
         chainCalled = true;
 
         return s_fallbackValue;
@@ -111,7 +146,7 @@ TEST(ErrorResultTest, AndThenShortCircuitsOnError) {
 TEST(ErrorResultTest, OrElsePropagatesRecoveredValue) {
     static constexpr auto s_invalidInput = -1;
     static constexpr auto s_recoveryValue = 0;
-    auto result = parsePositive(s_invalidInput).or_else([](const Errors::ErrorType<EParseError>&) -> Errors::ErrorResult<int, EParseError> {
+    auto result = parsePositive(s_invalidInput).or_else([](const Decree::ErrorType<EParseError>&) -> Decree::ErrorResult<int, EParseError> {
         return s_recoveryValue;
     });
 
@@ -121,64 +156,11 @@ TEST(ErrorResultTest, OrElsePropagatesRecoveredValue) {
 
 TEST(ErrorResultTest, OrElseForwardsError) {
     static constexpr auto s_invalidInput = -1;
-    auto result = parsePositive(s_invalidInput).or_else([](const Errors::ErrorType<EParseError>& err) -> Errors::ErrorResult<int, EParseError> {
+    auto result = parsePositive(s_invalidInput).or_else([](const Decree::ErrorType<EParseError>& err) -> Decree::ErrorResult<int, EParseError> {
         return std::unexpected(err);
     });
 
     ASSERT_FALSE(result.has_value());
-    EXPECT_EQ(result.error().errorCode, EParseError::InvalidFormat);
+    EXPECT_EQ(result.error().getErrorCode(), EParseError::eInvalidFormat);
 }
 
-TEST(CErrorConceptTest, ErrorTypeSatisfiesCError) {
-    static_assert(CError<Errors::ErrorType<EFileError>>);
-    static_assert(CError<Errors::ErrorType<EParseError>>);
-    SUCCEED();
-}
-
-TEST(CErrorConceptTest, PlainStructDoesNotSatisfyCError) {
-    struct NoCode { std::string errorMessage; };
-    static_assert(!CError<NoCode>);
-    SUCCEED();
-}
-
-TEST(CErrorConceptTest, IntDoesNotSatisfyCError) {
-    static_assert(!CError<int>);
-    SUCCEED();
-}
-
-struct CustomError {
-    enum class EErrorCode {
-        Overflow,
-        Underflow
-    };
-
-    std::string errorMessage;
-    EErrorCode  errorCode;
-
-    static CustomError makeError(EErrorCode code, std::string msg) {
-        return { std::move(msg), code };
-    }
-};
-
-TEST(CustomErrorTypeTest, SatisfiesCError) {
-    static_assert(CError<CustomError>);
-    SUCCEED();
-}
-
-TEST(CustomErrorTypeTest, MakeErrorRoundTrip) {
-    auto err = CustomError::makeError(CustomError::EErrorCode::Overflow, "overflow detected");
-
-    EXPECT_EQ(err.errorCode,    CustomError::EErrorCode::Overflow);
-    EXPECT_EQ(err.errorMessage, "overflow detected");
-}
-
-TEST(CustomErrorTypeTest, UsableAsErrorResultErrorType) {
-    static constexpr auto s_successValue = 1;
-    using Result = std::expected<int, CustomError>;
-    Result ok  = s_successValue;
-    Result bad = std::unexpected(CustomError::makeError(CustomError::EErrorCode::Underflow, "underflow"));
-
-    EXPECT_TRUE(ok.has_value());
-    EXPECT_FALSE(bad.has_value());
-    EXPECT_EQ(bad.error().errorCode, CustomError::EErrorCode::Underflow);
-}

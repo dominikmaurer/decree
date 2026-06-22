@@ -1,5 +1,4 @@
-import errors;
-import errorConcept;
+import decree;
 
 #include <gtest/gtest.h>
 #include <string>

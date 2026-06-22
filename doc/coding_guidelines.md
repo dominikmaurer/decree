@@ -1,6 +1,24 @@
 # Coding Guidelines
 
-C++23, Clang 17+, Ninja. Formatting is enforced by `.clang-format` — run `clang-format -i` before committing. Column limit is 200.
+C++23, Clang 17+, Ninja. Formatting is enforced by `.clang-format` — run `clang-format -i` before committing.
+
+---
+
+## Tabs vs. Spaces — The Great Silence
+
+Somewhere in the world, two developers are arguing about tabs versus spaces right now. One has written a 47-page manifesto. The other has opened a GitHub issue. Neither has seen their family in weeks.
+
+We don't do that here.
+
+The rule is simple: **4 spaces per indentation level.** If you use tabs, configure your editor to display and save them as 4 spaces. The result is identical. No discussion needed. No one has to be right. `.clang-format` reformats everything anyway — the only opinion that matters is the compiler's, and it doesn't care.
+
+```cpp
+void example() {
+    if(condition) {       // 4 spaces. Done. No meeting required.
+        doSomething();
+    }
+}
+```
 
 ---
 
@@ -84,10 +102,27 @@ EError busyWaitWithTimeout(WaitFunction&& fn, ...);
 
 No space between control flow keywords and the opening parenthesis.
 
+Always use braces — even for single-statement bodies. The opening brace is always on the same line as the keyword.
+
 ```cpp
 if(condition) {
     ...
 }
+
+if(condition) {
+    ...
+} else {
+    ...
+}
+
+if(condition1) {
+    ...
+} else if(condition2) {
+    ...
+} else {
+    ...
+}
+
 while(condition) {
     ...
 }
