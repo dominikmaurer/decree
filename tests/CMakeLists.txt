@@ -13,15 +13,15 @@ find_package(Threads REQUIRED)
 
 include(GoogleTest)
 
-add_executable(decree_test.
-    decree_test..cpp
+add_executable(decree_test
+    decree_test.cpp
 )
 
-target_link_libraries(decree_test. PRIVATE
+target_link_libraries(decree_test PRIVATE
     decree::decree
     GTest::gtest_main
     Threads::Threads
 )
 
-set_target_properties(decree_test. PROPERTIES CXX_EXTENSIONS OFF)
-gtest_discover_tests(decree_test.)
+set_target_properties(decree_test PROPERTIES CXX_EXTENSIONS OFF)
+gtest_discover_tests(decree_test)

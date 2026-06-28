@@ -382,7 +382,6 @@ ctest --test-dir build --output-on-failure
 
 ```sh
 ./build/tests/decree_header_test
-./build/tests/decree_module_test
 ```
 
 ### Test coverage areas
