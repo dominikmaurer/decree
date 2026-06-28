@@ -1,0 +1,40 @@
+name: Enforce PR title format (STRICT)
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  validate-title:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate PR title
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          HEAD="${{ github.head_ref }}"
+          BASE="${{ github.base_ref }}"
+          BODY="${{ github.event.pull_request.body }}"
+
+          echo "TITLE: $TITLE"
+          echo "HEAD:  $HEAD"
+          echo "BASE:  $BASE"
+
+          # extract issue number (#123)
+          if [[ "$BODY" =~ \#([0-9]+) ]]; then
+            ISSUE="#${BASH_REMATCH[1]}"
+          else
+            echo "❌ No issue reference found in PR body"
+            exit 1
+          fi
+
+          EXPECTED="merge ${HEAD} into ${BASE} (${ISSUE})"
+
+          echo "EXPECTED: $EXPECTED"
+
+          if [ "$TITLE" != "$EXPECTED" ]; then
+            echo "❌ Invalid PR title"
+            exit 1
+          fi
+
+          echo "✅ PR title is valid"

@@ -1,0 +1,26 @@
+name: Require linked issue
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  check-issue:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for issue reference
+        run: |
+          BODY="${{ github.event.pull_request.body }}"
+
+          echo "PR body:"
+          echo "$BODY"
+
+          # simple regex: checks for #123 or fixes #123 etc.
+          if echo "$BODY" | grep -Eiq "(#|fixes|closes)[[:space:]]*#[0-9]+"; then
+            echo "✅ Issue reference found"
+            exit 0
+          fi
+
+          echo "❌ No issue reference found in PR description"
+          exit 1
