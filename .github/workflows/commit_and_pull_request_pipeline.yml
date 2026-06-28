@@ -1,4 +1,4 @@
-name: CI (Build + Tests)
+name: Commit and Pull Request Pipeline
 
 on:
   push:
