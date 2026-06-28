@@ -1,3 +1,9 @@
+#include "decree.hpp"
+
+#include <gtest/gtest.h>
+#include <string>
+#include <expected>
+
 enum class EFileError {
     eNotFound,
     ePermissionDenied
@@ -164,4 +170,5 @@ TEST(ErrorResultTest, OrElseForwardsError) {
     ASSERT_FALSE(result.has_value());
     EXPECT_EQ(result.error().getErrorCode(), EParseError::eInvalidFormat);
 }
+
 
