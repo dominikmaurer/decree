@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++, clang++]
+        compiler: [gcc-14, clang++]
 
     steps:
       - name: Checkout repository
@@ -20,16 +20,34 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build clang g++
+          sudo apt-get install -y cmake ninja-build clang g++-14
 
+      # --- GCC 14 setup ---
+      - name: Setup GCC 14
+        if: matrix.compiler == 'gcc-14'
+        run: |
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+
+      # --- Configure ---
       - name: Configure project (tests ON)
         run: |
+          if [ "${{ matrix.compiler }}" = "gcc-14" ]; then
+            export CC=gcc-14
+            export CXX=g++-14
+          else
+            export CC=clang
+            export CXX=clang++
+          fi
+
           cmake -G Ninja -B build \
-            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_CXX_COMPILER=$CXX \
             -DDECREE_BUILD_TESTS=ON
 
+      # --- Build ---
       - name: Build project
         run: cmake --build build
 
+      # --- Tests ---
       - name: Run unit tests
         run: ctest --test-dir build --output-on-failure
