@@ -213,24 +213,22 @@ public:
 
 ## Templates
 
-- Template parameter lists use `template <typename T>` with a space after `template`.
-- The template declaration and the function signature are always on separate lines.
+- Template parameter lists use `template<typename T>` without a space after `template`.
 - Concept constraints are preferred over `enable_if`.
-- Use `requires` for constraints that cannot be expressed as a named concept.
-- Out-of-class definitions repeat the full `template <...>` prefix without explicit template arguments in the function name.
+- Use `requires` for constraints that cannot be expressed as a named concept. The `requires` clause may appear on the same line as the template declaration or on its own line.
+- Out-of-class definitions repeat the full `template<...>` prefix without explicit template arguments in the function name.
 
 ```cpp
 // named concept constraint
-template <std::predicate F>
+template<std::predicate F>
 [[nodiscard]] static EError wait(F&& condition);
 
-// requires clause for ad-hoc constraints
-template <typename T>
-requires std::same_as<T, float> || std::same_as<T, double>
+// requires clause for ad-hoc constraints — inline or separate line, both acceptable
+template<typename T> requires std::same_as<T, float> || std::same_as<T, double>
 void writeAnalog(T value);
 
 // definition — no <F> after the function name
-template <std::predicate F>
+template<std::predicate F>
 auto MyClass::wait(F&& condition) -> EError {
     ...
 }
@@ -345,7 +343,7 @@ export module timeHelpers;
 
 ## Tests
 
-- One test file per source module, named `test_<module_name>.cpp`.
+- Test files are named `<module_name>_<variant>_test.cpp` (e.g. `decree_header_test.cpp`, `decree_module_test.cpp`).
 - Test names use `PascalCase` and describe the expected behaviour: `ReturnNoErrorWhenConditionImmediatelyTrue`.
 - Use `TEST_F` with a fixture class when setup or teardown is needed.
 - For any test that measures elapsed time, assert both a lower bound (must not return early) and an upper bound (must not run indefinitely).

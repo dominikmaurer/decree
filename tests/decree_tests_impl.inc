@@ -32,6 +32,7 @@ TEST(ErrorTypeTest, FreeFunctionMakeErrorCapturesSourceLocation) {
     auto result = Decree::makeError(EFileError::eNotFound, "not found");
 
     EXPECT_EQ(result.error().getSourceLocation().line(), expectedLine);
+    EXPECT_NE(std::string_view(result.error().getSourceLocation().file_name()).find("decree_tests_impl"), std::string_view::npos);
 }
 
 TEST(ErrorTypeTest, IsCopyConstructible) {

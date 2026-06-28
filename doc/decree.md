@@ -27,7 +27,7 @@ The wrapper solves two problems:
 The two building blocks are independent and composable:
 
 | Building block | Role |
-|---|---|
+| --- | --- |
 | `Decree::ErrorType<ECode>` | The error value itself |
 | `Decree::ErrorResult<T, ECode>` | Return type alias (`std::expected`) |
 
@@ -82,9 +82,9 @@ classDiagram
 
 ## Modules
 
-| Module    | Exported name                                                    | File                             |
-|-----------|------------------------------------------------------------------|----------------------------------|
-| `decree`  | `Decree::ErrorType`, `Decree::ErrorResult`, `Decree::makeError`  | `src/error_handling_module.cppm` |
+| Module | Exported name | File |
+| --- | --- | --- |
+| `decree` | `Decree::ErrorType`, `Decree::ErrorResult`, `Decree::makeError` | `src/decree.cppm` |
 
 ---
 
@@ -97,13 +97,13 @@ A generic, value-semantic error struct parameterised by a user-defined error-cod
 ### Template parameter
 
 | Parameter | Constraint | Description |
-|---|---|---|
+| --- | --- | --- |
 | `TErrorCode` | `std::is_enum_v` | An enum (or enum class) whose enumerators identify error categories. |
 
 ### Getters
 
 | Getter | Return type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `getErrorCode()` | `EErrorCode` | Identifies the category of the error. |
 | `getErrorMessage()` | `std::string_view` | Human-readable description of what went wrong. |
 | `getSourceLocation()` | `std::source_location` | File, line, and function where `makeError` was called. Captured automatically — no extra argument needed. |
@@ -127,7 +127,7 @@ enum class EFileError {
     ePermissionDenied 
 };
 
-auto err = Decree::ErrorType<EFileError>::makeError(EFileError::eNotFound,"config.json was not found");
+auto err = Decree::ErrorType<EFileError>::makeError(EFileError::eNotFound, "config.json was not found");
 ```
 
 ---
@@ -167,7 +167,7 @@ Decree::ErrorResult<int, EParseError> parseNumber(std::string_view input) {
 ```cpp
 auto result = parseNumber("42");
 
-if (result) {
+if(result) {
     use(*result);                        // success path
 } else {
     log(result.error().getErrorMessage());    // failure path
@@ -232,12 +232,12 @@ private:
 ```cpp
 auto ConfigurationHandler::load(const std::filesystem::path& path) -> ReturnType<Configuration> {
     std::ifstream file{ path };
-    if (!file.is_open()) {
+    if(!file.is_open()) {
         return Decree::makeError(EError::eFileNotFound, "failed to open configuration: " + path.string());
     }
 
     auto parsed = parse(file);
-    if (!parsed.has_value()) {
+    if(!parsed.has_value()) {
         return Decree::makeError(EError::eParseFailed, parsed.error().getErrorMessage());
     }
 
@@ -252,7 +252,7 @@ auto ConfigurationHandler::save(const std::filesystem::path& path, const Configu
     std::filesystem::create_directories(path.parent_path());
 
     std::ofstream file{path};
-    if (!file.is_open()) {
+    if(!file.is_open()) {
         return Decree::makeError(EError::eWriteFailed, "failed to open for writing: " + path.string());
     }
 
@@ -270,7 +270,7 @@ Simple if-check — the most common pattern:
 ConfigurationHandler handler;
 
 auto config = handler.load("project.json");
-if (!config.has_value()) {
+if(!config.has_value()) {
     std::cerr << config.error().getErrorMessage() << "\n";
     
     return -1;
@@ -378,10 +378,11 @@ Tests are written with [GoogleTest](https://github.com/google/googletest) v1.14.
 ctest --test-dir build --output-on-failure
 ```
 
-### Run the test executable directly
+### Run the test executables directly
 
 ```sh
-./build/tests/decree_test
+./build/tests/decree_header_test
+./build/tests/decree_module_test
 ```
 
 ### Test coverage areas

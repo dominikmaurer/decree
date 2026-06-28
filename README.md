@@ -11,7 +11,7 @@ enum class EFileError {
 };
 
 Decree::ErrorResult<std::string, EFileError> readFile(const std::filesystem::path& path) {
-    if (!std::filesystem::exists(path)) {
+    if(!std::filesystem::exists(path)) {
         return Decree::makeError(EFileError::eNotFound, path.string() + " does not exist");
     }
 
@@ -19,7 +19,7 @@ Decree::ErrorResult<std::string, EFileError> readFile(const std::filesystem::pat
 }
 
 auto result = readFile("config.json");
-if (result) {
+if(result) {
     process(*result);
 } else {
     std::cerr << result.error().getErrorMessage() << "\n";
@@ -37,4 +37,4 @@ cmake --build build
 
 ## Documentation
 
-See [doc/error_handling.md](doc/error_handling.md) for the full API reference, architecture overview, and examples.
+See [doc/decree.md](doc/decree.md) for the full API reference, architecture overview, and examples.
