@@ -343,7 +343,7 @@ export module timeHelpers;
 
 ## Tests
 
-- Test files are named `<module_name>_<variant>_test.cpp` (e.g. `decree_header_test.cpp`, `decree_module_test.cpp`).
+- Test files are named `<module_name>_<variant>_test.cpp` (e.g. `decree_header_test.cpp`).
 - Test names use `PascalCase` and describe the expected behaviour: `ReturnNoErrorWhenConditionImmediatelyTrue`.
 - Use `TEST_F` with a fixture class when setup or teardown is needed.
 - For any test that measures elapsed time, assert both a lower bound (must not return early) and an upper bound (must not run indefinitely).

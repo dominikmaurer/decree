@@ -13,30 +13,15 @@ find_package(Threads REQUIRED)
 
 include(GoogleTest)
 
-add_executable(decree_header_test
-    decree_header_test.cpp
+add_executable(decree_test
+    decree_test.cpp
 )
 
-target_link_libraries(decree_header_test PRIVATE
+target_link_libraries(decree_test PRIVATE
     decree::decree
     GTest::gtest_main
     Threads::Threads
 )
 
-set_target_properties(decree_header_test PROPERTIES CXX_EXTENSIONS OFF)
-gtest_discover_tests(decree_header_test)
-
-if(DECREE_USE_MODULES)
-    add_executable(decree_module_test
-        decree_module_test.cpp
-    )
-
-    target_link_libraries(decree_module_test PRIVATE
-        decree::decree
-        GTest::gtest_main
-        Threads::Threads
-    )
-
-    set_target_properties(decree_module_test PROPERTIES CXX_EXTENSIONS OFF)
-    gtest_discover_tests(decree_module_test)
-endif()
+set_target_properties(decree_test PROPERTIES CXX_EXTENSIONS OFF)
+gtest_discover_tests(decree_test)

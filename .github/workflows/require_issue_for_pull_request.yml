@@ -16,11 +16,10 @@ jobs:
           echo "PR body:"
           echo "$BODY"
 
-          # simple regex: checks for #123 or fixes #123 etc.
           if echo "$BODY" | grep -Eiq "(#|fixes|closes)[[:space:]]*#[0-9]+"; then
-            echo "✅ Issue reference found"
+            echo "OK"
             exit 0
           fi
 
-          echo "❌ No issue reference found in PR description"
+          echo "Missing issue reference"
           exit 1
