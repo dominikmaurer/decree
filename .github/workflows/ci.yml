@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build clang g++-14
+          sudo apt-get install -y cmake ninja-build clang g++-14 libc++-dev libc++abi-dev
 
       # --- GCC 14 setup ---
       - name: Setup GCC 14
@@ -29,20 +29,29 @@ jobs:
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
 
+      # --- Clang + libc++ setup (OPTION 2) ---
+      - name: Setup Clang libc++
+        if: matrix.compiler == 'clang++'
+        run: |
+          echo "Using Clang with libc++"
+
       # --- Configure ---
       - name: Configure project (tests ON)
         run: |
           if [ "${{ matrix.compiler }}" = "gcc-14" ]; then
             export CC=gcc-14
             export CXX=g++-14
+            cmake -G Ninja -B build \
+              -DCMAKE_CXX_COMPILER=$CXX \
+              -DDECREE_BUILD_TESTS=ON
           else
             export CC=clang
             export CXX=clang++
+            cmake -G Ninja -B build \
+              -DCMAKE_CXX_COMPILER=$CXX \
+              -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+              -DDECREE_BUILD_TESTS=ON
           fi
-
-          cmake -G Ninja -B build \
-            -DCMAKE_CXX_COMPILER=$CXX \
-            -DDECREE_BUILD_TESTS=ON
 
       # --- Build ---
       - name: Build project
