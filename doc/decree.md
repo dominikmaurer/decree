@@ -48,12 +48,12 @@ graph TD
 
 ```mermaid
 flowchart LR
-    F[function] -->|returns| R{ErrorResult}
-    R -->|has_value| V[T — success value]
-    R -->|not has_value| E[ErrorType — error value]
-    E --> C[getErrorCode()]
-    E --> M[getErrorMessage()]
-    E --> L[getSourceLocation()]
+    F["function"] -->|returns| R{"ErrorResult"}
+    R -->|has_value| V["T - success value"]
+    R -->|not has_value| E["ErrorType - error value"]
+    E --> C["getErrorCode()"]
+    E --> M["getErrorMessage()"]
+    E --> L["getSourceLocation()"]
 ```
 
 ### Type relationships
@@ -98,7 +98,7 @@ A generic, value-semantic error struct parameterised by a user-defined error-cod
 
 | Parameter | Constraint | Description |
 | --- | --- | --- |
-| `TErrorCode` | `std::is_enum_v` | An enum (or enum class) whose enumerators identify error categories. |
+| `ErrorCodeEnum` | `std::is_enum_v` | An enum (or enum class) whose enumerators identify error categories. |
 
 ### Getters
 
@@ -139,8 +139,8 @@ auto err = Decree::ErrorType<EFileError>::makeError(EFileError::eNotFound, "conf
 A type alias for `std::expected<T, ErrorType<EErrorCode>>`. Use it as the return type of any function that can fail.
 
 ```cpp
-template<typename T, typename EErrorCode>
-using ErrorResult = std::expected<T, ErrorType<EErrorCode>>;
+template<typename T, typename ErrorCodeEnum> requires std::is_enum_v<ErrorCodeEnum>
+using ErrorResult = std::expected<T, ErrorType<ErrorCodeEnum>>;
 ```
 
 ### Returning a result
