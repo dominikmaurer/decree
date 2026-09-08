@@ -3,18 +3,44 @@ project(decree VERSION 1.0.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
-add_library(decree)
+option(DECREE_USE_MODULES "Build with C++23 modules" ON)
+
+if(DECREE_USE_MODULES)
+    if(NOT CMAKE_GENERATOR MATCHES "Ninja" AND NOT CMAKE_GENERATOR MATCHES "Ninja Multi-Config" AND NOT CMAKE_GENERATOR MATCHES "Visual Studio")
+        message(STATUS "C++23 modules are not supported by generator ${CMAKE_GENERATOR}; disabling DECREE_USE_MODULES")
+        set(DECREE_USE_MODULES OFF CACHE BOOL "Build with C++23 modules" FORCE)
+    endif()
+
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/decree.cppm")
+        message(WARNING "C++ module source file src/decree.cppm not found; disabling DECREE_USE_MODULES")
+        set(DECREE_USE_MODULES OFF CACHE BOOL "Build with C++23 modules" FORCE)
+    endif()
+endif()
+
+if(DECREE_USE_MODULES)
+    add_library(decree)
+else()
+    add_library(decree INTERFACE)
+endif()
 add_library(decree::decree ALIAS decree)
 
-target_compile_features(decree PUBLIC cxx_std_23)
-set_target_properties(decree PROPERTIES CXX_EXTENSIONS OFF)
+if(DECREE_USE_MODULES)
+    target_compile_features(decree PUBLIC cxx_std_23)
+    set_target_properties(decree PROPERTIES CXX_EXTENSIONS OFF)
 
-target_include_directories(decree PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
+    target_include_directories(decree PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
+else()
+    target_compile_features(decree INTERFACE cxx_std_23)
+    set_target_properties(decree PROPERTIES CXX_EXTENSIONS OFF)
 
-option(DECREE_USE_MODULES "Build with C++23 modules" ON)
+    target_include_directories(decree INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
+endif()
 
 if(DECREE_USE_MODULES)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
